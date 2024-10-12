@@ -3,7 +3,7 @@
 # For example, building this Docker image using the latest version of ubuntu may fail,
 # because the start image in this Dockerfile keeps changing, and may break dependencies or
 # introduce non-backward compatible changes
-FROM ubuntu:18.04
+FROM ubuntu:18.04 AS builder
 
 # update available package lists for Ubuntu
 RUN apt-get update
@@ -53,6 +53,15 @@ RUN sed -i '79i    System.out.println("dbUrl = " + dbUrl);' src/main/java/com/ex
 
 # build the jar
 RUN mvn install
+
+# To deploy our application more efficiently, we will use a new "light-weight" image that
+# only has the JRE (not JDK) installed.
+# In this new image, we only need to copy the generated jar from the previous image.
+FROM openjdk:8-jre
+
+COPY --from=builder /java-getting-started/target/java-getting-started-1.0.jar /java-getting-started/target/java-getting-started-1.0.jar
+
+WORKDIR /java-getting-started
 
 # copy this script inside the WORKDIR of the image, to be run from inside the container
 COPY start_inside_container.sh .
